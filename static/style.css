@@ -8,7 +8,7 @@ body {
 }
 
 .container {
-    max-width: 800px;
+    max-width: 900px; /* 幅を少し広げる */
     margin: 0 auto;
     background-color: #fff;
     padding: 30px;
@@ -36,7 +36,7 @@ label {
     margin-bottom: 8px;
 }
 
-textarea, input[type="date"] {
+textarea {
     width: 100%;
     padding: 10px;
     border: 1px solid #ced4da;
@@ -45,53 +45,44 @@ textarea, input[type="date"] {
     box-sizing: border-box;
 }
 
-.time-slot-container, .selected-slots-container {
-    padding: 15px;
+.add-item-control {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.add-item-control input[type="text"], .add-item-control input[type="date"] {
+    flex-grow: 1;
+    padding: 10px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 16px;
+    box-sizing: border-box;
+}
+
+.item-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
     border: 1px solid #e9ecef;
     border-radius: 5px;
-    background-color: #f8f9fa;
     min-height: 50px;
+    background-color: #f8f9fa;
 }
 
-.placeholder-text {
-    color: #6c757d;
-    margin: 0;
-}
-
-.time-slot-btn, .selected-slot-item button, .copy-btn {
-    background-color: #fff;
-    color: #007bff;
-    border: 1px solid #007bff;
-    padding: 8px 12px;
-    margin: 5px;
-    border-radius: 20px;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.time-slot-btn:hover {
-    background-color: #007bff;
-    color: #fff;
-}
-
-.time-slot-btn.added {
-    background-color: #6c757d;
-    border-color: #6c757d;
-    color: #fff;
-    cursor: not-allowed;
-}
-
-.selected-slot-item {
-    background-color: #e9ecef;
-    padding: 10px 15px;
-    border-radius: 5px;
-    margin-bottom: 8px;
+.item-list li {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    padding: 10px 15px;
+    border-bottom: 1px solid #e9ecef;
 }
 
-.selected-slot-item button {
+.item-list li:last-child {
+    border-bottom: none;
+}
+
+.item-list li button {
     background-color: #dc3545;
     color: #fff;
     border: none;
@@ -101,6 +92,67 @@ textarea, input[type="date"] {
     line-height: 25px;
     padding: 0;
     font-weight: bold;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.schedule-matrix {
+    display: grid;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    overflow-x: auto; /* 横スクロールを可能にする */
+    background-color: #fff;
+}
+
+.matrix-header-row {
+    display: contents; /* 子要素がグリッドアイテムになるように */
+}
+
+.matrix-cell {
+    padding: 10px;
+    border: 1px solid #e9ecef;
+    text-align: center;
+    white-space: nowrap; /* テキストの折り返しを防ぐ */
+}
+
+.header-cell {
+    background-color: #f1f3f5;
+    font-weight: 600;
+    position: sticky;
+    top: 0; /* ヘッダーを固定 */
+    z-index: 10;
+}
+
+.time-header {
+    background-color: #f1f3f5;
+    font-weight: 600;
+    position: sticky;
+    left: 0; /* 時間ヘッダーを固定 */
+    z-index: 10;
+}
+
+.slot-button {
+    background-color: #e9ecef;
+    border: 1px solid #ced4da;
+    padding: 10px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    font-size: 14px;
+}
+
+.slot-button:hover {
+    background-color: #dee2e6;
+}
+
+.slot-button.selected {
+    background-color: #007bff;
+    color: #fff;
+    border-color: #007bff;
+}
+
+.placeholder-text {
+    color: #6c757d;
+    margin: 15px;
 }
 
 button {
@@ -154,7 +206,7 @@ button:disabled {
     color: white;
     padding: 5px 15px;
     font-size: 14px;
-    flex-shrink: 0; /* Prevent button from shrinking */
+    flex-shrink: 0;
 }
 
 table {
