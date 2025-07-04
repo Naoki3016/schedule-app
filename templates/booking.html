@@ -35,15 +35,19 @@
                         {% for date in sorted_dates %}
                             {% set slot_string = date + ' ' + hour|string + ':00-' + (hour+1)|string + ':00' %}
                             {% set booked_by = schedule.get(slot_string) %}
+                            {% set is_offered = slot_string in schedule %}
                             <button class="matrix-cell slot-button
-                                {% if booked_by == ob_name %}booked-by-me
+                                {% if not is_offered %}not-offered
+                                {% elif booked_by == ob_name %}booked-by-me
                                 {% elif booked_by is not none %}booked-by-other
                                 {% else %}available
                                 {% endif %}"
                                 data-slot="{{ slot_string }}"
-                                {% if booked_by is not none and booked_by != ob_name %}disabled{% endif %}
+                                {% if not is_offered or (booked_by is not none and booked_by != ob_name) %}disabled{% endif %}
                             >
-                                {% if booked_by == ob_name %}
+                                {% if not is_offered %}
+                                    
+                                {% elif booked_by == ob_name %}
                                     あなたの予約
                                 {% elif booked_by is not none %}
                                     予約済み

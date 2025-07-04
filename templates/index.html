@@ -167,7 +167,6 @@
                     const slotString = `${date} ${hour}:00-${hour + 1}:00`;
                     const slotButton = document.createElement('button');
                     slotButton.classList.add('matrix-cell', 'slot-button');
-                    // slotButton.textContent = '選択'; // Placeholder text - REMOVED
                     slotButton.dataset.slot = slotString;
 
                     // Initial state: all slots are selected by default when date is added
@@ -178,6 +177,9 @@
                     if (selectedTimeSlots.has(slotString)) {
                         slotButton.classList.add('selected');
                         slotButton.textContent = '✓';
+                    } else {
+                        slotButton.classList.add('not-offered'); // Not selected by admin
+                        slotButton.textContent = ''; // No text for not offered slots
                     }
 
                     slotButton.addEventListener('click', () => {
@@ -199,7 +201,7 @@
                 const encodedName = btoa(unescape(encodeURIComponent(name))); 
                 const bookingUrl = `${window.location.origin}/booking?ob=${encodedName}`;
                 const listItem = document.createElement('li');
-                listItem.innerHTML = `<strong>${name}:</strong> <input type="text" value="${bookingUrl}" readonly> <button class="copy-btn">コピー</button>`;
+                listItem.innerHTML = `<strong>${name}:</strong> <input type="text" value="${bookingUrl}" readonly> <button class="copy-btn">コピー</button> <a href="${bookingUrl}" target="_blank" class="go-to-link-btn">開く</a>`;
                 listItem.querySelector('.copy-btn').addEventListener('click', (e) => {
                     navigator.clipboard.writeText(bookingUrl);
                     e.target.textContent = '完了!';
@@ -244,14 +246,17 @@
                     cell.classList.add('matrix-cell');
 
                     const bookedBy = scheduleData[slotString];
+                    const isOffered = selectedTimeSlots.has(slotString);
+
                     if (bookedBy) {
                         cell.classList.add('booked');
                         cell.textContent = bookedBy;
-                    } else if (selectedTimeSlots.has(slotString)) { // Only show empty if it's a selected slot
+                    } else if (isOffered) { 
                         cell.classList.add('empty');
                         cell.textContent = '空き';
                     } else {
-                        cell.textContent = ''; // Not a selected slot, so just empty
+                        cell.classList.add('not-offered'); // Not offered by admin
+                        cell.textContent = ''; // No text for not offered slots
                     }
                     currentScheduleDisplay.appendChild(cell);
                 });
@@ -307,11 +312,23 @@
         // --- Initial Render ---
         renderObNames();
         renderSelectedDates();
-        const initialSchedule = {{ data.schedule | tojson }};
-        renderCurrentSchedule(initialSchedule);
-        if (obNames.length > 0) {
-            generateLinks(obNames);
-        }
+        // Fetch initial schedule data from server
+        fetch('/status')
+            .then(res => res.json())
+            .then(appData => {
+                renderCurrentSchedule(appData.schedule);
+                if (appData.ob_names && appData.ob_names.length > 0) {
+                    generateLinks(appData.ob_names);
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching initial status:', error);
+                // Fallback if initial fetch fails
+                renderCurrentSchedule({});
+                if (obNames.length > 0) {
+                    generateLinks(obNames);
+                }
+            });
     });
     </script>
 </body>

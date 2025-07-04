@@ -175,6 +175,14 @@ textarea {
     color: #6c757d;
 }
 
+/* New style for slots not offered by admin */
+.slot-button.not-offered, #current-schedule-display .matrix-cell.not-offered {
+    background-color: #e0e0e0; /* Darker gray */
+    color: #a0a0a0;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
 .placeholder-text {
     color: #6c757d;
     margin: 15px;
@@ -232,6 +240,18 @@ button:disabled {
     padding: 5px 15px;
     font-size: 14px;
     flex-shrink: 0;
+}
+
+.go-to-link-btn {
+    background-color: #6c757d;
+    color: white;
+    padding: 5px 15px;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.go-to-link-btn:hover {
+    background-color: #5a6268;
 }
 
 table {
@@ -321,7 +341,7 @@ th, td {
     opacity: 0.7;
 }
 
-.booking-section .slot-button.not-available {
+.booking-section .slot-button.not-offered {
     background-color: #e0e0e0; /* Gray for slots not offered by admin */
     color: #a0a0a0;
     cursor: not-allowed;
