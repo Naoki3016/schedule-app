@@ -3,13 +3,22 @@ import base64
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
 from urllib.parse import unquote
-# from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user # Removed
+from sqlalchemy import inspect # Import inspect
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your_super_secret_key_here') # Still good practice
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your_super_secret_key_here') # Change this in production
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
+
+# --- Database Initialization (Runs when app starts) ---
+with app.app_context():
+    inspector = inspect(db.engine) # Create an inspector
+    # Check if any table exists (e.g., Config table) as a heuristic
+    if not inspector.has_table(Config.__tablename__): # Use inspector.has_table
+        print("Database tables not found. Creating tables...")
+        db.create_all()
+        print("Tables created.")
 
 # --- Database Models ---
 class Config(db.Model):
@@ -21,17 +30,6 @@ class Schedule(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     slot = db.Column(db.String(100), unique=True, nullable=False)
     booked_by = db.Column(db.String(100), nullable=True) # OB's name
-
-# --- Database Initialization (Runs when app starts) ---
-# User model removed, so no User table to create/check here
-with app.app_context():
-    # Check if any table exists (e.g., Config table) as a heuristic
-    if not db.engine.dialect.has_table(db.engine, Config.__tablename__):
-        print("Database tables not found. Creating tables...")
-        db.create_all()
-        print("Tables created.")
-
-# login_manager removed #
 
 # --- Helper Functions ---
 def get_app_data():
@@ -49,16 +47,11 @@ def get_app_data():
 
 # --- Routes ---
 @app.route('/')
-# @login_required # Removed
 def admin_page():
     data = get_app_data()
-    # current_user removed #
     return render_template('index.html', data=data)
 
-# Login/Logout routes removed #
-
 @app.route('/setup', methods=['POST'])
-# @login_required # Removed
 def setup_schedule():
     req_data = request.json
     ob_names = req_data.get('ob_names', [])
