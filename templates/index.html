@@ -272,6 +272,12 @@
             const date = dateInput.value;
             if (date && !selectedDates.has(date)) {
                 selectedDates.add(date);
+                // When a new date is added, automatically select all time slots for that date
+                const hours = Array.from({ length: 9 }, (_, i) => 9 + i); // 9:00 to 17:00
+                hours.forEach(hour => {
+                    const slotString = `${date} ${hour}:00-${hour + 1}:00`;
+                    selectedTimeSlots.add(slotString);
+                });
                 renderSelectedDates();
             }
         });
