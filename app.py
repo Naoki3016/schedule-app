@@ -57,15 +57,6 @@ def get_app_data():
 @app.route('/')
 @login_required # Requires login to access this page
 def admin_page():
-    with app.app_context():
-        db.create_all() # Creates tables if they don't exist
-        # Create a default admin user if not exists (for first run)
-        if not User.query.filter_by(username='admin').first():
-            admin_user = User(username='admin', password='password') # CHANGE THIS PASSWORD!
-            db.session.add(admin_user)
-            db.session.commit()
-            print("Default admin user 'admin' with password 'password' created.")
-
     data = get_app_data()
     return render_template('index.html', data=data, current_user=current_user)
 
@@ -150,12 +141,5 @@ def book_slot():
 
 if __name__ == '__main__':
     # This part is for local development only. Render will use gunicorn.
-    with app.app_context():
-        db.create_all()
-        # Create a default admin user if not exists (for first run)
-        if not User.query.filter_by(username='admin').first():
-            admin_user = User(username='admin', password='password') # CHANGE THIS PASSWORD!
-            db.session.add(admin_user)
-            db.session.commit()
-            print("Default admin user 'admin' with password 'password' created.")
+    # db.create_all() and initial user creation are moved to init_db.py
     app.run(debug=True)
