@@ -55,15 +55,18 @@
 
             <div class="schedule-section">
                 <h2>現在の予約状況</h2>
-                <div id="current-schedule-display" class="schedule-matrix">
-                    <!-- 予約状況マトリクスはJSで動的に追加 -->
-                    <p class="placeholder-text">スケジュールを設定すると、ここに予約状況が表示されます。</p>
-                </div>
+                <table id="schedule-table">
+                    <thead>
+                        <tr><th>時間</th><th>予約者</th></tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
             </div>
         </main>
     </div>
     <script>
     document.addEventListener('DOMContentLoaded', () => {
+        const obNamesTextarea = document.getElementById('ob-names');
         const obNameInput = document.getElementById('ob-name-input');
         const addObBtn = document.getElementById('add-ob-btn');
         const obNamesList = document.getElementById('ob-names-list');
@@ -77,6 +80,7 @@
         const generateBtn = document.getElementById('generate-links-btn');
         const linksSection = document.getElementById('links-section');
         const linksList = document.getElementById('links-list');
+        const scheduleTableBody = document.querySelector('#schedule-table tbody');
 
         let obNames = {{ data.ob_names | tojson }};
         let selectedDates = new Set();
@@ -167,19 +171,12 @@
                     const slotString = `${date} ${hour}:00-${hour + 1}:00`;
                     const slotButton = document.createElement('button');
                     slotButton.classList.add('matrix-cell', 'slot-button');
+                    slotButton.textContent = '選択'; // Placeholder text
                     slotButton.dataset.slot = slotString;
-
-                    // Initial state: all slots are selected by default when date is added
-                    if (!selectedTimeSlots.has(slotString) && selectedDates.has(date)) {
-                        selectedTimeSlots.add(slotString);
-                    }
 
                     if (selectedTimeSlots.has(slotString)) {
                         slotButton.classList.add('selected');
                         slotButton.textContent = '✓';
-                    } else {
-                        slotButton.classList.add('not-offered'); // Not selected by admin
-                        slotButton.textContent = ''; // No text for not offered slots
                     }
 
                     slotButton.addEventListener('click', () => {
@@ -271,6 +268,10 @@
                 obNameInput.value = '';
                 renderObNames();
             }
+        });
+
+        dateInput.addEventListener('change', () => {
+            // Optional: automatically add date on change if not already added
         });
 
         addDateBtn.addEventListener('click', () => {
