@@ -308,19 +308,16 @@ th, td {
 }
 
 .booking-section .slot-button {
-    background-color: #f8f9fa;
-    border: 1px solid #dee2e6;
-    padding: 15px;
-    border-radius: 5px;
+    background-color: #e9ecef;
+    border: 1px solid #ced4da;
+    padding: 10px;
     cursor: pointer;
-    transition: background-color 0.2s, border-color 0.2s;
-    text-align: center;
-    font-size: 16px;
-    width: 100%; /* Ensure buttons fill grid space */
+    transition: background-color 0.2s;
+    font-size: 14px;
 }
 
 .booking-section .slot-button:hover {
-    background-color: #e9ecef;
+    background-color: #dee2e6;
 }
 
 .booking-section .slot-button.selected {
@@ -344,7 +341,7 @@ th, td {
     opacity: 0.7;
 }
 
-.booking-section .slot-button.not-available {
+.booking-section .slot-button.not-offered {
     background-color: #e0e0e0; /* Gray for slots not offered by admin */
     color: #a0a0a0;
     cursor: not-allowed;
