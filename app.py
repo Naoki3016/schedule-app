@@ -11,16 +11,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
-# --- Database Initialization (Runs when app starts) ---
-with app.app_context():
-    inspector = inspect(db.engine) # Create an inspector
-    # Check if any table exists (e.g., Config table) as a heuristic
-    if not inspector.has_table(Config.__tablename__): # Use inspector.has_table
-        print("Database tables not found. Creating tables...")
-        db.create_all()
-        print("Tables created.")
-
-# --- Database Models ---
+# --- Database Models (DEFINED BEFORE INITIALIZATION LOGIC) ---
 class Config(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     key = db.Column(db.String(50), unique=True, nullable=False)
@@ -30,6 +21,15 @@ class Schedule(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     slot = db.Column(db.String(100), unique=True, nullable=False)
     booked_by = db.Column(db.String(100), nullable=True) # OB's name
+
+# --- Database Initialization (Runs when app starts) ---
+with app.app_context():
+    inspector = inspect(db.engine) # Create an inspector
+    # Check if any table exists (e.g., Config table) as a heuristic
+    if not inspector.has_table(Config.__tablename__): # Use inspector.has_table
+        print("Database tables not found. Creating tables...")
+        db.create_all()
+        print("Tables created.")
 
 # --- Helper Functions ---
 def get_app_data():
