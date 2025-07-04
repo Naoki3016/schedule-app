@@ -253,46 +253,79 @@ th, td {
 /* Styles for booking.html */
 .booking-section #available-slots {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* Responsive grid */
-    gap: 10px;
-    margin-bottom: 20px;
+    /* grid-template-columns will be set by JS */
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    overflow-x: auto;
+    background-color: #fff;
 }
 
-.slot-option {
-    background-color: #f8f9fa;
-    border: 1px solid #dee2e6;
-    padding: 15px;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.2s, border-color 0.2s;
+.booking-section .matrix-header-row {
+    display: contents;
+}
+
+.booking-section .matrix-cell {
+    padding: 10px;
+    border: 1px solid #e9ecef;
     text-align: center;
-    font-size: 16px;
-    width: 100%; /* Ensure buttons fill grid space */
+    white-space: nowrap;
 }
 
-.slot-option:hover {
+.booking-section .header-cell {
+    background-color: #f1f3f5;
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.booking-section .time-header {
+    background-color: #f1f3f5;
+    font-weight: 600;
+    position: sticky;
+    left: 0;
+    z-index: 10;
+}
+
+.booking-section .slot-button {
     background-color: #e9ecef;
+    border: 1px solid #ced4da;
+    padding: 10px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    font-size: 14px;
 }
 
-.slot-option.selected {
+.booking-section .slot-button:hover {
+    background-color: #dee2e6;
+}
+
+.booking-section .slot-button.selected {
     background-color: #cce5ff;
     border-color: #007bff;
     font-weight: 600;
 }
 
-.slot-option.booked-by-me {
+.booking-section .slot-button.booked-by-me {
     background-color: #d4edda; /* Light green for own booking */
     border-color: #28a745;
     color: #155724;
     font-weight: 600;
 }
 
-.slot-option.booked-by-other {
+.booking-section .slot-button.booked-by-other {
     background-color: #f8d7da; /* Light red for other's booking */
     border-color: #dc3545;
     color: #721c24;
     cursor: not-allowed;
     opacity: 0.7;
+}
+
+.booking-section .slot-button.not-available {
+    background-color: #e0e0e0; /* Gray for slots not offered by admin */
+    color: #a0a0a0;
+    cursor: not-allowed;
+    opacity: 0.6;
 }
 
 #result-message {

@@ -15,24 +15,44 @@
 
         <main>
             <div class="booking-section">
-                <div id="available-slots">
-                    {% set has_available_slots = false %}
-                    {% set current_ob_has_booking = false %}
-                    {% for slot, booked_by in schedule.items()|sort %}
-                        {% if booked_by is none %}
-                            {% set has_available_slots = true %}
-                            <button class="slot-option" data-slot="{{ slot }}">{{ slot }}</button>
-                        {% elif booked_by == ob_name %}
-                            {% set current_ob_has_booking = true %}
-                            <button class="slot-option booked-by-me" data-slot="{{ slot }}">{{ slot }} (あなたの予約)</button>
-                        {% else %}
-                            <button class="slot-option booked-by-other" data-slot="{{ slot }}" disabled>{{ slot }} (予約済み)</button>
-                        {% endif %}
+                <div id="available-slots" class="schedule-matrix">
+                    <div class="matrix-header-row">
+                        <div class="matrix-cell header-cell">時間</div>
+                        {% set sorted_dates = [] %}
+                        {% for slot_key in schedule.keys()|sort %}
+                            {% set date_part = slot_key.split(' ')[0] %}
+                            {% if date_part not in sorted_dates %}
+                                {% do sorted_dates.append(date_part) %}
+                            {% endif %}
+                        {% endfor %}
+                        {% for date in sorted_dates %}
+                            <div class="matrix-cell header-cell">{{ date.split('-')[1] }}月{{ date.split('-')[2] }}日</div>
+                        {% endfor %}
+                    </div>
+
+                    {% for hour in range(9, 18) %}
+                        <div class="matrix-cell time-header">{{ hour }}:00</div>
+                        {% for date in sorted_dates %}
+                            {% set slot_string = date + ' ' + hour|string + ':00-' + (hour+1)|string + ':00' %}
+                            {% set booked_by = schedule.get(slot_string) %}
+                            <button class="matrix-cell slot-button
+                                {% if booked_by == ob_name %}booked-by-me
+                                {% elif booked_by is not none %}booked-by-other
+                                {% else %}available
+                                {% endif %}"
+                                data-slot="{{ slot_string }}"
+                                {% if booked_by is not none and booked_by != ob_name %}disabled{% endif %}
+                            >
+                                {% if booked_by == ob_name %}
+                                    あなたの予約
+                                {% elif booked_by is not none %}
+                                    予約済み
+                                {% else %}
+                                    選択
+                                {% endif %}
+                            </button>
+                        {% endfor %}
                     {% endfor %}
-                    
-                    {% if not has_available_slots and not current_ob_has_booking %}
-                        <p class="placeholder-text">現在、予約可能な時間がありません。管理者にご確認ください。</p>
-                    {% endif %}
                 </div>
                 <button id="confirm-booking-btn" disabled>この時間で確定する</button>
                 <p id="result-message"></p>
@@ -47,7 +67,7 @@
         let selectedSlot = null;
 
         // Pre-select current booking if exists
-        const currentBookingButton = document.querySelector('.slot-option.booked-by-me');
+        const currentBookingButton = document.querySelector('.slot-button.booked-by-me');
         if (currentBookingButton) {
             currentBookingButton.classList.add('selected');
             selectedSlot = currentBookingButton.dataset.slot;
@@ -56,9 +76,9 @@
 
         availableSlotsDiv.addEventListener('click', (event) => {
             const target = event.target;
-            if (target.classList.contains('slot-option') && !target.classList.contains('booked-by-other')) {
+            if (target.classList.contains('slot-button') && !target.disabled) {
                 // Remove selection from previously selected slot
-                const currentlySelected = document.querySelector('.slot-option.selected');
+                const currentlySelected = document.querySelector('.slot-button.selected');
                 if (currentlySelected) {
                     currentlySelected.classList.remove('selected');
                 }
@@ -88,24 +108,28 @@
                 resultMessage.textContent = data.message;
                 if (data.status === 'success') {
                     resultMessage.style.color = '#28a745';
-                    // Visually update the booked slot
-                    document.querySelectorAll('.slot-option').forEach(btn => {
-                        if (btn.dataset.slot === selectedSlot) {
-                            btn.classList.remove('selected');
-                            btn.classList.remove('booked-by-other'); // In case it was previously booked by other
-                            btn.classList.add('booked-by-me');
-                            btn.textContent = `${selectedSlot} (あなたの予約)`;
-                            btn.disabled = false; // Re-enable for potential re-selection
+                    // Update UI based on new booking status
+                    document.querySelectorAll('.slot-button').forEach(btn => {
+                        const slot = btn.dataset.slot;
+                        if (slot === selectedSlot) {
+                            btn.classList.remove('available', 'booked-by-other');
+                            btn.classList.add('booked-by-me', 'selected');
+                            btn.textContent = 'あなたの予約';
+                            btn.disabled = false; // Keep enabled for potential re-selection
                         } else if (btn.classList.contains('booked-by-me')) {
-                            // If it was previously booked by me, now it's free
-                            btn.classList.remove('booked-by-me');
-                            btn.classList.remove('selected');
-                            btn.textContent = btn.dataset.slot;
+                            // This was previously booked by me, now it's free
+                            btn.classList.remove('booked-by-me', 'selected');
+                            btn.classList.add('available');
+                            btn.textContent = '選択';
+                            btn.disabled = false;
+                        } else if (btn.classList.contains('booked-by-other')) {
+                            // Other's booking remains disabled
+                            btn.disabled = true;
+                        } else {
+                            // Available slots remain available
                             btn.disabled = false;
                         }
                     });
-                    // Disable other already booked slots
-                    document.querySelectorAll('.slot-option.booked-by-other').forEach(btn => btn.disabled = true);
 
                 } else {
                     resultMessage.style.color = '#dc3545';
