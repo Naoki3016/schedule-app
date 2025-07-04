@@ -11,6 +11,9 @@
         <header>
             <h1>OB訪問 スケジュール管理</h1>
             <p>OBの名前と候補時間を設定して、スケジュールを開始してください。</p>
+            {% if current_user.is_authenticated %}
+                <p>ようこそ、{{ current_user.username }}さん！ <a href="{{ url_for('logout') }}">ログアウト</a></p>
+            {% endif %}
         </header>
 
         <main>
@@ -66,6 +69,7 @@
     </div>
     <script>
     document.addEventListener('DOMContentLoaded', () => {
+        const obNamesTextarea = document.getElementById('ob-names');
         const obNameInput = document.getElementById('ob-name-input');
         const addObBtn = document.getElementById('add-ob-btn');
         const obNamesList = document.getElementById('ob-names-list');
@@ -193,7 +197,8 @@
         function generateLinks(names) {
             linksList.innerHTML = '';
             names.forEach(name => {
-                const encodedName = btoa(unescape(encodeURIComponent(name)));
+                // ここを修正: unescapeを追加
+                const encodedName = btoa(unescape(encodeURIComponent(name))); 
                 const bookingUrl = `${window.location.origin}/booking?ob=${encodedName}`;
                 const listItem = document.createElement('li');
                 listItem.innerHTML = `<strong>${name}:</strong> <input type="text" value="${bookingUrl}" readonly> <button class="copy-btn">コピー</button>`;
