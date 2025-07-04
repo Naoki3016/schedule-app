@@ -1,12 +1,17 @@
 import os
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
-from app import db, User, Config, Schedule # Import models and db from app.py
+
+# Import models from app.py
+from app import User, Config, Schedule
 
 # Create a minimal Flask app context for database operations
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Re-initialize db within init_db.py's context
+db = SQLAlchemy(app)
 
 with app.app_context():
     print("Creating database tables...")
