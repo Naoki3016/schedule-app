@@ -11,6 +11,24 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
+# --- Database Initialization (Runs when app starts) ---
+with app.app_context():
+    # Check if tables exist before creating them
+    # This is a heuristic; a more robust solution might involve Alembic migrations
+    if not db.engine.dialect.has_table(db.engine, User.__tablename__):
+        print("Database tables not found. Creating tables...")
+        db.create_all()
+        print("Tables created.")
+
+    # Create a default admin user if not exists
+    if not User.query.filter_by(username='admin').first():
+        admin_user = User(username='admin', password='password') # CHANGE THIS PASSWORD!
+        db.session.add(admin_user)
+        db.session.commit()
+        print("Default admin user 'admin' with password 'password' created.")
+    else:
+        print("Admin user already exists.")
+
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login' # Redirect to login page if not authenticated
@@ -57,30 +75,6 @@ def get_app_data():
 @app.route('/')
 @login_required # Requires login to access this page
 def admin_page():
-    # Attempt to create tables and initial user if they don't exist
-    # This is a fallback for environments without preDeployCommand
-    with app.app_context():
-        try:
-            # Check if any table exists (e.g., User table)
-            # This is a heuristic to avoid db.create_all() on every request
-            if not db.engine.dialect.has_table(db.engine, User.__tablename__):
-                print("Database tables not found. Creating tables...")
-                db.create_all()
-                print("Tables created.")
-
-            # Create a default admin user if not exists
-            if not User.query.filter_by(username='admin').first():
-                admin_user = User(username='admin', password='password') # CHANGE THIS PASSWORD!
-                db.session.add(admin_user)
-                db.session.commit()
-                print("Default admin user 'admin' with password 'password' created.")
-            else:
-                print("Admin user already exists.")
-        except Exception as e:
-            print(f"Error during database initialization: {e}")
-            # Handle cases where db.create_all() might fail due to permissions etc.
-            # For now, just print and continue, but in production, you might want to log this more robustly.
-
     data = get_app_data()
     return render_template('index.html', data=data, current_user=current_user)
 
@@ -165,11 +159,5 @@ def book_slot():
 
 if __name__ == '__main__':
     # This block is for local development only.
-    # For Render, the database initialization will happen on first access to /admin_page
-    with app.app_context():
-        db.create_all()
-        if not User.query.filter_by(username='admin').first():
-            admin_user = User(username='admin', password='password') # CHANGE THIS PASSWORD!
-            db.session.add(admin_user)
-            db.session.commit()
+    # For Render, the database initialization will happen at the top-level when the app starts.
     app.run(debug=True)
