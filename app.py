@@ -2,12 +2,11 @@ import os
 import base64
 from flask import Flask, render_template, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
+from urllib.parse import unquote # Add this import
 
 app = Flask(__name__)
 
 # --- Database Configuration ---
-# Render provides the DATABASE_URL environment variable
-# For local testing, you might set it to a local SQLite DB, but for now, we focus on Render.
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
@@ -71,8 +70,10 @@ def booking_page():
     ob_id = request.args.get('ob')
     if not ob_id: return "エラー: 招待リンクが無効です。", 400
     try:
-        ob_name = base64.b64decode(ob_id).decode('utf-8')
-    except Exception: return "エラー: 招待リンクの形式が正しくありません。", 400
+        # Decode from Base64, then decode percent-encoding
+        ob_name = unquote(base64.b64decode(ob_id).decode('utf-8')) # Modified line
+    except Exception:
+        return "エラー: 招待リンクの形式が正しくありません。", 400
 
     data = get_app_data()
     if ob_name not in data.get('ob_names', []): return "エラー: あなたは招待されていません。", 403
@@ -84,6 +85,8 @@ def book_slot():
     req_data = request.json
     ob_name = req_data.get('ob_name')
     slot_to_book = req_data.get('slot')
+
+    data = get_app_data()
 
     # Free up previous slot if user is re-booking
     previous_booking = Schedule.query.filter_by(booked_by=ob_name).first()
