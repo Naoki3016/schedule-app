@@ -7,10 +7,12 @@ from app import User, Config, Schedule
 
 # Create a minimal Flask app context for database operations
 app = Flask(__name__)
+
+# Set SQLALCHEMY_DATABASE_URI AFTER app is created
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Re-initialize db within init_db.py's context
+# Initialize db with the app
 db = SQLAlchemy(app)
 
 with app.app_context():
