@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OB訪問 ご希望時間選択</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>{{ ob_name }}様、ご希望の時間を選択してください</h1>
+            <p>ご多忙のところ恐れ入ります。以下の候補より、ご希望の時間帯を一つお選びください。</p>
+        </header>
+
+        <main>
+            <div class="booking-section">
+                <div id="available-slots">
+                    {% set has_slots = false %}
+                    {% for slot, name in schedule.items() %}
+                        {% if name is none %}
+                            {% set has_slots = true %}
+                            <div class="slot-option" data-slot="{{ slot }}">{{ slot }}</div>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if not has_slots %}
+                        <p class="placeholder-text">現在、予約可能な時間がありません。管理者にご確認ください。</p>
+                    {% endif %}
+                </div>
+                <button id="confirm-booking-btn" disabled>この時間で確定する</button>
+                <p id="result-message"></p>
+            </div>
+        </main>
+    </div>
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const availableSlotsDiv = document.getElementById('available-slots');
+        const confirmBtn = document.getElementById('confirm-booking-btn');
+        const resultMessage = document.getElementById('result-message');
+        let selectedSlot = null;
+
+        // Only enable the button if there are slots to choose from
+        if (document.querySelector('.slot-option')) {
+             availableSlotsDiv.addEventListener('click', (event) => {
+                const target = event.target;
+                if (target.classList.contains('slot-option')) {
+                    document.querySelectorAll('.slot-option.selected').forEach(el => el.classList.remove('selected'));
+                    target.classList.add('selected');
+                    selectedSlot = target.dataset.slot;
+                    confirmBtn.disabled = false;
+                }
+            });
+        } else {
+            // If there are no slots, the button remains disabled.
+        }
+
+        confirmBtn.addEventListener('click', () => {
+            if (!selectedSlot) return;
+
+            fetch('/book', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ob_name: "{{ ob_name }}", slot: selectedSlot })
+            })
+            .then(res => res.json())
+            .then(data => {
+                resultMessage.textContent = data.message;
+                if (data.status === 'success') {
+                    resultMessage.style.color = '#28a745';
+                    confirmBtn.disabled = true;
+                    document.querySelectorAll('.slot-option').forEach(el => {
+                        if (!el.classList.contains('selected')) {
+                            el.style.display = 'none';
+                        }
+                    });
+                } else {
+                    resultMessage.style.color = '#dc3545';
+                    alert(data.message); // Show alert for errors like race conditions
+                    location.reload(); // Reload the page to show the latest availability
+                }
+            });
+        });
+    });
+    </script>
+</body>
+</html>

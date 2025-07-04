@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OB訪問 スケジュール管理</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>OB訪問 スケジュール管理</h1>
+            <p>OBの名前と候補時間を設定して、スケジュールを開始してください。</p>
+        </header>
+
+        <main>
+            <div class="setup-section">
+                <div class="input-group">
+                    <label for="ob-names">1. OBの名前 (1行に1人)</label>
+                    <textarea id="ob-names" rows="5" placeholder="田中 太郎">{% for name in data.ob_names %}{{ name }}{% if not loop.last %}\n{% endif %}{% endfor %}</textarea>
+                </div>
+
+                <div class="input-group">
+                    <label for="date-picker">2. 日付を選択</label>
+                    <input type="date" id="date-picker">
+                </div>
+
+                <div class="input-group">
+                    <label>3. 時間を選択 (9:00 - 18:00)</label>
+                    <div id="time-slot-buttons" class="time-slot-container">
+                        <p class="placeholder-text">日付を選択してください。</p>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>4. 選択済みの候補時間</label>
+                    <div id="selected-slots-display" class="selected-slots-container">
+                        <p class="placeholder-text">候補時間はありません。</p>
+                    </div>
+                </div>
+
+                <button id="generate-links-btn">スケジュールを設定・更新</button>
+            </div>
+
+            <div class="links-section" id="links-section" style="display:none;">
+                <h2>招待リンク一覧</h2>
+                <ul id="links-list"></ul>
+            </div>
+
+            <div class="schedule-section">
+                <h2>現在の予約状況</h2>
+                <table id="schedule-table">
+                    <thead>
+                        <tr><th>時間</th><th>予約者</th></tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const obNamesTextarea = document.getElementById('ob-names');
+        const datePicker = document.getElementById('date-picker');
+        const timeSlotButtonsDiv = document.getElementById('time-slot-buttons');
+        const selectedSlotsDiv = document.getElementById('selected-slots-display');
+        const generateBtn = document.getElementById('generate-links-btn');
+        const linksSection = document.getElementById('links-section');
+        const linksList = document.getElementById('links-list');
+        const scheduleTableBody = document.querySelector('#schedule-table tbody');
+
+        let initialTimeSlots = {{ data.time_slots | tojson }};
+        let selectedTimeSlots = new Set(initialTimeSlots);
+
+        function renderTimeSlotButtons() {
+            timeSlotButtonsDiv.innerHTML = '';
+            const selectedDate = datePicker.value;
+            if (!selectedDate) {
+                timeSlotButtonsDiv.innerHTML = '<p class="placeholder-text">日付を選択してください。</p>';
+                return;
+            }
+            const date = new Date(selectedDate);
+            const localDate = new Date(date.getTime() + date.getTimezoneOffset() * 60000);
+            const month = localDate.getMonth() + 1;
+            const day = localDate.getDate();
+
+            for (let hour = 9; hour < 18; hour++) {
+                const slotString = `${month}月${day}日 ${hour}:00-${hour + 1}:00`;
+                const button = document.createElement('button');
+                button.textContent = `${hour}:00`;
+                button.classList.add('time-slot-btn');
+                if (selectedTimeSlots.has(slotString)) {
+                    button.classList.add('added');
+                    button.disabled = true;
+                }
+                button.addEventListener('click', () => {
+                    selectedTimeSlots.add(slotString);
+                    renderAll();
+                });
+                timeSlotButtonsDiv.appendChild(button);
+            }
+        }
+
+        function renderSelectedSlots() {
+            selectedSlotsDiv.innerHTML = '';
+            if (selectedTimeSlots.size === 0) {
+                selectedSlotsDiv.innerHTML = '<p class="placeholder-text">候補時間はありません。</p>';
+                return;
+            }
+            selectedTimeSlots.forEach(slot => {
+                const item = document.createElement('div');
+                item.classList.add('selected-slot-item');
+                item.textContent = slot;
+                const removeBtn = document.createElement('button');
+                removeBtn.textContent = '×';
+                removeBtn.addEventListener('click', () => {
+                    selectedTimeSlots.delete(slot);
+                    renderAll();
+                });
+                item.appendChild(removeBtn);
+                selectedSlotsDiv.appendChild(item);
+            });
+        }
+
+        function generateLinks(names) {
+            linksList.innerHTML = '';
+            names.forEach(name => {
+                const encodedName = btoa(name);
+                const bookingUrl = `${window.location.origin}/booking?ob=${encodedName}`;
+                const listItem = document.createElement('li');
+                listItem.innerHTML = `<strong>${name}:</strong> <input type="text" value="${bookingUrl}" readonly> <button class="copy-btn">コピー</button>`;
+                listItem.querySelector('.copy-btn').addEventListener('click', (e) => {
+                    navigator.clipboard.writeText(bookingUrl);
+                    e.target.textContent = '完了!';
+                    setTimeout(() => { e.target.textContent = 'コピー'; }, 2000);
+                });
+                linksList.appendChild(listItem);
+            });
+            linksSection.style.display = 'block';
+        }
+
+        function updateScheduleView(schedule) {
+            scheduleTableBody.innerHTML = '';
+            selectedTimeSlots.forEach(slot => {
+                const row = document.createElement('tr');
+                const bookedBy = schedule[slot];
+                row.innerHTML = `<td>${slot}</td><td>${bookedBy ? `<strong>${bookedBy}</strong>` : '<em>空き</em>'}</td>`;
+                scheduleTableBody.appendChild(row);
+            });
+        }
+
+        generateBtn.addEventListener('click', () => {
+            const obNames = obNamesTextarea.value.trim().split('\n').filter(name => name);
+            const timeSlots = Array.from(selectedTimeSlots);
+
+            fetch('/setup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ob_names: obNames, time_slots: timeSlots })
+            })
+            .then(res => res.json())
+            .then(data => {
+                alert(data.message);
+                location.reload();
+            });
+        });
+
+        function renderAll() {
+            renderTimeSlotButtons();
+            renderSelectedSlots();
+        }
+        
+        function initialLoad() {
+            renderSelectedSlots();
+            const schedule = {{ data.schedule | tojson }};
+            updateScheduleView(schedule);
+            if (obNamesTextarea.value) {
+                generateLinks(obNamesTextarea.value.trim().split('\n'));
+            }
+        }
+
+        datePicker.addEventListener('change', renderTimeSlotButtons);
+        initialLoad();
+    });
+    </script>
+</body>
+</html>
