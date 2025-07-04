@@ -3,35 +3,13 @@ import base64
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
 from urllib.parse import unquote
-from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+# from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user # Removed
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your_super_secret_key_here') # Change this in production
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your_super_secret_key_here') # Still good practice
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
-
-# --- Database Initialization (Runs when app starts) ---
-with app.app_context():
-    # Check if tables exist before creating them
-    # This is a heuristic; a more robust solution might involve Alembic migrations
-    if not db.engine.dialect.has_table(db.engine, User.__tablename__):
-        print("Database tables not found. Creating tables...")
-        db.create_all()
-        print("Tables created.")
-
-    # Create a default admin user if not exists
-    if not User.query.filter_by(username='admin').first():
-        admin_user = User(username='admin', password='password') # CHANGE THIS PASSWORD!
-        db.session.add(admin_user)
-        db.session.commit()
-        print("Default admin user 'admin' with password 'password' created.")
-    else:
-        print("Admin user already exists.")
-
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = 'login' # Redirect to login page if not authenticated
 
 # --- Database Models ---
 class Config(db.Model):
@@ -44,18 +22,16 @@ class Schedule(db.Model):
     slot = db.Column(db.String(100), unique=True, nullable=False)
     booked_by = db.Column(db.String(100), nullable=True) # OB's name
 
-# --- User Model for Flask-Login ---
-class User(UserMixin, db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    password = db.Column(db.String(120), nullable=False) # In a real app, hash passwords!
+# --- Database Initialization (Runs when app starts) ---
+# User model removed, so no User table to create/check here
+with app.app_context():
+    # Check if any table exists (e.g., Config table) as a heuristic
+    if not db.engine.dialect.has_table(db.engine, Config.__tablename__):
+        print("Database tables not found. Creating tables...")
+        db.create_all()
+        print("Tables created.")
 
-    def __repr__(self):
-        return '<User %r>' % self.username
-
-@login_manager.user_loader
-def load_user(user_id):
-    return User.query.get(int(user_id))
+# login_manager removed #
 
 # --- Helper Functions ---
 def get_app_data():
@@ -73,35 +49,16 @@ def get_app_data():
 
 # --- Routes ---
 @app.route('/')
-@login_required # Requires login to access this page
+# @login_required # Removed
 def admin_page():
     data = get_app_data()
-    return render_template('index.html', data=data, current_user=current_user)
+    # current_user removed #
+    return render_template('index.html', data=data)
 
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-        user = User.query.filter_by(username=username).first()
-
-        if user and user.password == password: # In real app: use werkzeug.security.check_password_hash
-            login_user(user)
-            flash('ログインしました。', 'success')
-            return redirect(url_for('admin_page'))
-        else:
-            flash('ユーザー名またはパスワードが間違っています。', 'danger')
-    return render_template('login.html')
-
-@app.route('/logout')
-@login_required
-def logout():
-    logout_user()
-    flash('ログアウトしました。', 'info')
-    return redirect(url_for('login'))
+# Login/Logout routes removed #
 
 @app.route('/setup', methods=['POST'])
-@login_required # Requires login to access this endpoint
+# @login_required # Removed
 def setup_schedule():
     req_data = request.json
     ob_names = req_data.get('ob_names', [])
@@ -159,5 +116,4 @@ def book_slot():
 
 if __name__ == '__main__':
     # This block is for local development only.
-    # For Render, the database initialization will happen at the top-level when the app starts.
     app.run(debug=True)

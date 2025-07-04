@@ -11,9 +11,6 @@
         <header>
             <h1>OB訪問 スケジュール管理</h1>
             <p>OBの名前と候補時間を設定して、スケジュールを開始してください。</p>
-            {% if current_user.is_authenticated %}
-                <p>ようこそ、{{ current_user.username }}さん！ <a href="{{ url_for('logout') }}">ログアウト</a></p>
-            {% endif %}
         </header>
 
         <main>
