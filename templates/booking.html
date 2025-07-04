@@ -9,22 +9,28 @@
 <body>
     <div class="container">
         <header>
-            <h1>{{ ob_name }}様、ご希望の時間を選択してください</h1>
+            <h1 id="ob-greeting">{{ ob_name }}様、ご希望の時間を選択してください</h1>
             <p>ご多忙のところ恐れ入ります。以下の候補より、ご希望の時間帯を一つお選びください。</p>
         </header>
 
         <main>
             <div class="booking-section">
                 <div id="available-slots">
-                    {% set has_slots = false %}
-                    {% for slot, name in schedule.items() %}
-                        {% if name is none %}
-                            {% set has_slots = true %}
-                            <div class="slot-option" data-slot="{{ slot }}">{{ slot }}</div>
+                    {% set has_available_slots = false %}
+                    {% set current_ob_has_booking = false %}
+                    {% for slot, booked_by in schedule.items()|sort %}
+                        {% if booked_by is none %}
+                            {% set has_available_slots = true %}
+                            <button class="slot-option" data-slot="{{ slot }}">{{ slot }}</button>
+                        {% elif booked_by == ob_name %}
+                            {% set current_ob_has_booking = true %}
+                            <button class="slot-option booked-by-me" data-slot="{{ slot }}">{{ slot }} (あなたの予約)</button>
+                        {% else %}
+                            <button class="slot-option booked-by-other" data-slot="{{ slot }}" disabled>{{ slot }} (予約済み)</button>
                         {% endif %}
                     {% endfor %}
                     
-                    {% if not has_slots %}
+                    {% if not has_available_slots and not current_ob_has_booking %}
                         <p class="placeholder-text">現在、予約可能な時間がありません。管理者にご確認ください。</p>
                     {% endif %}
                 </div>
@@ -40,23 +46,37 @@
         const resultMessage = document.getElementById('result-message');
         let selectedSlot = null;
 
-        // Only enable the button if there are slots to choose from
-        if (document.querySelector('.slot-option')) {
-             availableSlotsDiv.addEventListener('click', (event) => {
-                const target = event.target;
-                if (target.classList.contains('slot-option')) {
-                    document.querySelectorAll('.slot-option.selected').forEach(el => el.classList.remove('selected'));
-                    target.classList.add('selected');
-                    selectedSlot = target.dataset.slot;
-                    confirmBtn.disabled = false;
-                }
-            });
-        } else {
-            // If there are no slots, the button remains disabled.
+        // Pre-select current booking if exists
+        const currentBookingButton = document.querySelector('.slot-option.booked-by-me');
+        if (currentBookingButton) {
+            currentBookingButton.classList.add('selected');
+            selectedSlot = currentBookingButton.dataset.slot;
+            confirmBtn.disabled = false;
         }
+
+        availableSlotsDiv.addEventListener('click', (event) => {
+            const target = event.target;
+            if (target.classList.contains('slot-option') && !target.classList.contains('booked-by-other')) {
+                // Remove selection from previously selected slot
+                const currentlySelected = document.querySelector('.slot-option.selected');
+                if (currentlySelected) {
+                    currentlySelected.classList.remove('selected');
+                }
+
+                // Add selection to the new one
+                target.classList.add('selected');
+                selectedSlot = target.dataset.slot;
+                confirmBtn.disabled = false;
+            }
+        });
 
         confirmBtn.addEventListener('click', () => {
             if (!selectedSlot) return;
+
+            // Disable button to prevent multiple clicks
+            confirmBtn.disabled = true;
+            resultMessage.textContent = '予約処理中...';
+            resultMessage.style.color = '#007bff';
 
             fetch('/book', {
                 method: 'POST',
@@ -68,17 +88,39 @@
                 resultMessage.textContent = data.message;
                 if (data.status === 'success') {
                     resultMessage.style.color = '#28a745';
-                    confirmBtn.disabled = true;
-                    document.querySelectorAll('.slot-option').forEach(el => {
-                        if (!el.classList.contains('selected')) {
-                            el.style.display = 'none';
+                    // Visually update the booked slot
+                    document.querySelectorAll('.slot-option').forEach(btn => {
+                        if (btn.dataset.slot === selectedSlot) {
+                            btn.classList.remove('selected');
+                            btn.classList.remove('booked-by-other'); // In case it was previously booked by other
+                            btn.classList.add('booked-by-me');
+                            btn.textContent = `${selectedSlot} (あなたの予約)`;
+                            btn.disabled = false; // Re-enable for potential re-selection
+                        } else if (btn.classList.contains('booked-by-me')) {
+                            // If it was previously booked by me, now it's free
+                            btn.classList.remove('booked-by-me');
+                            btn.classList.remove('selected');
+                            btn.textContent = btn.dataset.slot;
+                            btn.disabled = false;
                         }
                     });
+                    // Disable other already booked slots
+                    document.querySelectorAll('.slot-option.booked-by-other').forEach(btn => btn.disabled = true);
+
                 } else {
                     resultMessage.style.color = '#dc3545';
                     alert(data.message); // Show alert for errors like race conditions
-                    location.reload(); // Reload the page to show the latest availability
+                    // Re-enable button on error
+                    confirmBtn.disabled = false;
+                    // Reload the page to show the latest availability if booking failed due to race condition
+                    location.reload(); 
                 }
+            })
+            .catch(error => {
+                console.error('Error booking slot:', error);
+                resultMessage.textContent = '予約中にエラーが発生しました。';
+                resultMessage.style.color = '#dc3545';
+                confirmBtn.disabled = false;
             });
         });
     });

@@ -11,7 +11,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
-# --- Database Models (DEFINED BEFORE INITIALIZATION LOGIC) ---
+# --- Database Models ---
 class Config(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     key = db.Column(db.String(50), unique=True, nullable=False)
@@ -90,6 +90,8 @@ def book_slot():
     req_data = request.json
     ob_name = req_data.get('ob_name')
     slot_to_book = req_data.get('slot')
+
+    data = get_app_data()
 
     # Free up previous slot if user is re-booking
     previous_booking = Schedule.query.filter_by(booked_by=ob_name).first()
