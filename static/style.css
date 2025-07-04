@@ -150,6 +150,31 @@ textarea {
     border-color: #007bff;
 }
 
+/* New styles for current schedule matrix */
+#current-schedule-display {
+    margin-top: 20px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    overflow-x: auto;
+    background-color: #fff;
+    display: grid;
+}
+
+#current-schedule-display .matrix-cell {
+    background-color: #fff;
+}
+
+#current-schedule-display .matrix-cell.booked {
+    background-color: #d4edda; /* Light green for booked slots */
+    font-weight: 600;
+    color: #155724;
+}
+
+#current-schedule-display .matrix-cell.empty {
+    background-color: #f8f9fa; /* Light gray for empty slots */
+    color: #6c757d;
+}
+
 .placeholder-text {
     color: #6c757d;
     margin: 15px;

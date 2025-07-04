@@ -55,18 +55,15 @@
 
             <div class="schedule-section">
                 <h2>現在の予約状況</h2>
-                <table id="schedule-table">
-                    <thead>
-                        <tr><th>時間</th><th>予約者</th></tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
+                <div id="current-schedule-display" class="schedule-matrix">
+                    <!-- 予約状況マトリクスはJSで動的に追加 -->
+                    <p class="placeholder-text">スケジュールを設定すると、ここに予約状況が表示されます。</p>
+                </div>
             </div>
         </main>
     </div>
     <script>
     document.addEventListener('DOMContentLoaded', () => {
-        const obNamesTextarea = document.getElementById('ob-names');
         const obNameInput = document.getElementById('ob-name-input');
         const addObBtn = document.getElementById('add-ob-btn');
         const obNamesList = document.getElementById('ob-names-list');
@@ -76,10 +73,10 @@
         const selectedDatesList = document.getElementById('selected-dates-list');
 
         const scheduleMatrix = document.getElementById('schedule-matrix');
+        const currentScheduleDisplay = document.getElementById('current-schedule-display');
         const generateBtn = document.getElementById('generate-links-btn');
         const linksSection = document.getElementById('links-section');
         const linksList = document.getElementById('links-list');
-        const scheduleTableBody = document.querySelector('#schedule-table tbody');
 
         let obNames = {{ data.ob_names | tojson }};
         let selectedDates = new Set();
@@ -170,8 +167,13 @@
                     const slotString = `${date} ${hour}:00-${hour + 1}:00`;
                     const slotButton = document.createElement('button');
                     slotButton.classList.add('matrix-cell', 'slot-button');
-                    slotButton.textContent = '選択'; // Placeholder text
+                    // slotButton.textContent = '選択'; // Placeholder text - REMOVED
                     slotButton.dataset.slot = slotString;
+
+                    // Initial state: all slots are selected by default when date is added
+                    if (!selectedTimeSlots.has(slotString) && selectedDates.has(date)) {
+                        selectedTimeSlots.add(slotString);
+                    }
 
                     if (selectedTimeSlots.has(slotString)) {
                         slotButton.classList.add('selected');
@@ -194,7 +196,6 @@
         function generateLinks(names) {
             linksList.innerHTML = '';
             names.forEach(name => {
-                // ここを修正: unescapeを追加
                 const encodedName = btoa(unescape(encodeURIComponent(name))); 
                 const bookingUrl = `${window.location.origin}/booking?ob=${encodedName}`;
                 const listItem = document.createElement('li');
@@ -209,14 +210,51 @@
             linksSection.style.display = 'block';
         }
 
-        function updateScheduleView(schedule) {
-            scheduleTableBody.innerHTML = '';
-            const allSlots = Array.from(selectedTimeSlots).sort();
-            allSlots.forEach(slot => {
-                const row = document.createElement('tr');
-                const bookedBy = schedule[slot];
-                row.innerHTML = `<td>${slot}</td><td>${bookedBy ? `<strong>${bookedBy}</strong>` : '<em>空き</em>'}</td>`;
-                scheduleTableBody.appendChild(row);
+        function renderCurrentSchedule(scheduleData) {
+            const dates = Array.from(selectedDates).sort();
+            const hours = Array.from({ length: 9 }, (_, i) => 9 + i); // 9:00 to 17:00
+
+            currentScheduleDisplay.innerHTML = '';
+            if (dates.length === 0 || Object.keys(scheduleData).length === 0) {
+                currentScheduleDisplay.innerHTML = '<p class="placeholder-text">スケジュールを設定すると、ここに予約状況が表示されます。</p>';
+                return;
+            }
+
+            currentScheduleDisplay.style.gridTemplateColumns = `auto repeat(${dates.length}, 1fr)`;
+
+            // Header Row
+            const headerRow = document.createElement('div');
+            headerRow.classList.add('matrix-header-row');
+            headerRow.innerHTML = '<div class="matrix-cell header-cell">時間</div>';
+            dates.forEach(date => {
+                headerRow.innerHTML += `<div class="matrix-cell header-cell">${date.substring(5)}</div>`;
+            });
+            currentScheduleDisplay.appendChild(headerRow);
+
+            // Schedule Rows
+            hours.forEach(hour => {
+                const timeHeader = document.createElement('div');
+                timeHeader.classList.add('matrix-cell', 'time-header');
+                timeHeader.textContent = `${hour}:00`;
+                currentScheduleDisplay.appendChild(timeHeader);
+
+                dates.forEach(date => {
+                    const slotString = `${date} ${hour}:00-${hour + 1}:00`;
+                    const cell = document.createElement('div');
+                    cell.classList.add('matrix-cell');
+
+                    const bookedBy = scheduleData[slotString];
+                    if (bookedBy) {
+                        cell.classList.add('booked');
+                        cell.textContent = bookedBy;
+                    } else if (selectedTimeSlots.has(slotString)) { // Only show empty if it's a selected slot
+                        cell.classList.add('empty');
+                        cell.textContent = '空き';
+                    } else {
+                        cell.textContent = ''; // Not a selected slot, so just empty
+                    }
+                    currentScheduleDisplay.appendChild(cell);
+                });
             });
         }
 
@@ -228,10 +266,6 @@
                 obNameInput.value = '';
                 renderObNames();
             }
-        });
-
-        dateInput.addEventListener('change', () => {
-            // Optional: automatically add date on change if not already added
         });
 
         addDateBtn.addEventListener('click', () => {
@@ -260,7 +294,7 @@
                 fetch('/status')
                     .then(res => res.json())
                     .then(appData => {
-                        updateScheduleView(appData.schedule);
+                        renderCurrentSchedule(appData.schedule);
                         generateLinks(appData.ob_names);
                     });
             })
@@ -274,7 +308,7 @@
         renderObNames();
         renderSelectedDates();
         const initialSchedule = {{ data.schedule | tojson }};
-        updateScheduleView(initialSchedule);
+        renderCurrentSchedule(initialSchedule);
         if (obNames.length > 0) {
             generateLinks(obNames);
         }
